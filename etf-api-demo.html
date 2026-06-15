@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETF行情通 - 实时数据版</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --dark:#b83030;--dark2:#cc4040;--gold:#f0c0c0;--gold-light:#f5dada;
+  --bg:#f5f6fa;--white:#fff;--text:#1a1a1a;--text2:#666;--text3:#999;
+  --border:#e8e8e8;--rise:#e74c3c;--fall:#27ae60;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:#3a1515;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:20px 0}
+.phone{width:390px;height:844px;background:var(--bg);border-radius:44px;overflow:hidden;box-shadow:0 0 0 3px #333,0 0 0 6px #1a1a1a,0 20px 60px rgba(0,0,0,.5);position:relative;display:flex;flex-direction:column}
+.phone-statusbar{height:54px;background:var(--dark);display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 8px;color:#fff;font-size:14px;font-weight:600;flex-shrink:0}
+.phone-nav{height:48px;background:var(--dark);display:flex;align-items:center;padding:0 12px;flex-shrink:0;gap:10px}
+.phone-nav .nav-search{flex:1;display:flex;align-items:center;background:rgba(255,255,255,.15);border-radius:16px;padding:6px 12px;gap:6px}
+.phone-nav .nav-search svg{width:14px;height:14px;color:rgba(255,255,255,.7);flex-shrink:0}
+.phone-nav .nav-search input{flex:1;border:none;background:none;font-size:13px;color:#fff;outline:none}
+.phone-nav .nav-search input::placeholder{color:rgba(255,255,255,.5)}
+.phone-nav .nav-title{color:#fff;font-size:15px;font-weight:600;white-space:nowrap}
+.phone-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.phone-content::-webkit-scrollbar{display:none}
+.tab-bar{height:83px;background:var(--white);display:flex;border-top:1px solid var(--border);flex-shrink:0}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all .2s}
+.tab-item svg{width:24px;height:24px;transition:all .2s}
+.tab-item span{font-size:10px;color:var(--text3);transition:all .2s}
+.tab-item.active svg path,.tab-item.active svg circle,.tab-item.active svg rect,.tab-item.active svg line{stroke:#b83030}
+.tab-item.active span{color:#b83030;font-weight:600}
+.page{display:none;flex-direction:column;min-height:100%}
+.page.active{display:flex}
+
+/* Loading */
+.loading{display:flex;justify-content:center;align-items:center;padding:40px}
+.loading-spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--dark);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Banner */
+.banner{position:relative;height:160px;overflow:hidden}
+.banner-track{display:flex;transition:transform .5s cubic-bezier(.4,0,.2,1);height:100%}
+.banner-slide{min-width:100%;height:100%;display:flex;align-items:center;padding:24px 28px;position:relative;overflow:hidden}
+.banner-slide.s1{background:linear-gradient(135deg,#b83030,#d05050)}
+.banner-slide.s2{background:linear-gradient(135deg,#902030,#b84060)}
+.banner-slide.s3{background:linear-gradient(135deg,#a02828,#c84848)}
+.banner-tag{display:inline-block;background:rgba(232,180,180,.3);color:var(--gold-light);font-size:11px;padding:3px 12px;border-radius:12px;margin-bottom:8px;border:1px solid rgba(232,180,180,.4)}
+.banner-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:6px;position:relative;z-index:1}
+.banner-desc{font-size:13px;color:rgba(255,255,255,.7);margin-bottom:12px;position:relative;z-index:1}
+.banner-btn{display:inline-block;background:linear-gradient(135deg,#f0c0c0,#d8a0a0);color:#fff;font-size:13px;padding:8px 24px;border-radius:20px;font-weight:500;position:relative;z-index:1;cursor:pointer}
+.banner-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:2}
+.banner-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4);transition:all .3s}
+.banner-dot.active{background:#f0c0c0;width:18px;border-radius:3px}
+
+/* Section */
+.section{background:var(--white);margin:12px;border-radius:12px;overflow:hidden}
+.section-head{display:flex;justify-content:space-between;align-items:center;padding:16px 16px 12px}
+.section-title{font-size:17px;font-weight:600;color:var(--dark);display:flex;align-items:center;gap:8px}
+.section-title::before{content:'';width:3px;height:14px;background:var(--dark);border-radius:2px}
+.section-more{font-size:12px;color:var(--dark);cursor:pointer}
+
+/* Index Cards */
+.index-cards{display:flex;padding:0 12px 14px;gap:8px}
+.index-card{flex:1;padding:14px 10px;border-radius:10px;text-align:center}
+.index-card.up{background:rgba(231,76,60,.06);border:1px solid rgba(231,76,60,.12)}
+.index-card.down{background:rgba(39,174,96,.06);border:1px solid rgba(39,174,96,.12)}
+.index-card .name{font-size:12px;color:var(--text2);margin-bottom:6px}
+.index-card .val{font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px}
+.index-card .chg{font-size:12px;font-weight:500}
+.index-card .chg.up{color:var(--rise)}
+.index-card .chg.down{color:var(--fall)}
+
+/* Market Performance */
+.market-cats{display:flex;gap:6px;padding:0 16px 12px;overflow-x:auto}
+.market-cats::-webkit-scrollbar{display:none}
+.market-cat{flex-shrink:0;padding:6px 14px;border-radius:14px;font-size:12px;color:var(--text2);background:var(--bg);cursor:pointer;transition:all .2s;border:1px solid transparent}
+.market-cat.active{background:var(--dark);color:#fff}
+.perf-overview{display:flex;align-items:center;padding:12px 16px;background:#f9fafb;margin:0 12px 12px;border-radius:10px}
+.perf-stat{flex:1;text-align:center}
+.perf-stat .label{display:block;font-size:11px;color:var(--text3);margin-bottom:4px}
+.perf-stat .value{display:block;font-size:14px;font-weight:600;color:var(--text)}
+.perf-divider{width:1px;height:30px;background:var(--border)}
+.perf-tabs{display:flex;gap:6px}
+.perf-tab{padding:4px 14px;border-radius:14px;font-size:12px;color:var(--text2);background:var(--bg);cursor:pointer;transition:all .2s}
+.perf-tab.active{background:var(--dark);color:#fff}
+
+/* Table */
+.tbl-head{display:flex;padding:8px 16px;border-bottom:1px solid var(--border)}
+.tbl-head span{font-size:11px;color:var(--text3)}
+.tbl-row{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #f8f8f8;cursor:pointer;transition:background .15s}
+.tbl-row:last-child{border-bottom:none}
+.tbl-row:active{background:#f9f9f9}
+.tbl-col-name{flex:2}
+.tbl-col-price{flex:1;text-align:center;font-size:14px;color:var(--text)}
+.tbl-col-chg{flex:1;text-align:right}
+.etf-name{font-size:14px;color:var(--text);font-weight:500}
+.etf-code{font-size:11px;color:var(--text3);margin-top:2px}
+.chg-badge{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:6px;min-width:60px;text-align:center}
+.chg-badge.up{background:rgba(231,76,60,.1);color:var(--rise)}
+.chg-badge.down{background:rgba(39,174,96,.1);color:var(--fall)}
+
+/* Hot ETF */
+.hot-tags{display:flex;gap:6px;padding:0 16px 12px;overflow-x:auto}
+.hot-tags::-webkit-scrollbar{display:none}
+.hot-tag{flex-shrink:0;padding:6px 16px;border-radius:14px;font-size:12px;color:var(--text2);background:var(--bg);cursor:pointer;transition:all .2s;border:1px solid transparent}
+.hot-tag.active{background:var(--dark);color:#fff}
+.hot-tag.sort-active{background:rgba(184,48,48,.12);color:var(--dark);border-color:rgba(184,48,48,.3)}
+.hot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 14px}
+.hot-card{background:#f9fafb;border-radius:10px;padding:14px;border:1px solid #f0f0f0;cursor:pointer;transition:all .15s}
+.hot-card:active{background:#f0f0f0}
+.hot-card .hc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.hot-card .hc-name{font-size:14px;color:var(--text);font-weight:600}
+.mini-tag{font-size:9px;color:var(--dark);background:rgba(184,48,48,.1);padding:1px 6px;border-radius:4px}
+.hot-card .hc-price-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.hot-card .hc-price{font-size:16px;font-weight:700;color:var(--text)}
+.hot-card .hc-chg{font-size:13px;font-weight:600}
+.hot-card .hc-chg.up{color:var(--rise)}
+.hot-card .hc-chg.down{color:var(--fall)}
+.hot-card .hc-vol{font-size:11px;color:var(--text3)}
+
+/* Articles */
+.art-item{display:flex;padding:14px 16px;border-bottom:1px solid #f5f5f5;cursor:pointer}
+.art-item:last-child{border-bottom:none}
+.art-info{flex:1;display:flex;flex-direction:column;justify-content:space-between;margin-right:14px}
+.art-title{font-size:14px;color:var(--text);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.art-meta{display:flex;align-items:center;gap:10px;margin-top:8px}
+.art-tag{font-size:10px;color:var(--dark);background:rgba(184,48,48,.1);padding:1px 8px;border-radius:4px}
+.art-time,.art-views{font-size:11px;color:var(--text3)}
+.art-cover{width:80px;height:56px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;background:linear-gradient(135deg,#f8f4f0,#f0e8e0)}
+
+/* Article Detail */
+.article-header{padding:20px 16px;background:linear-gradient(135deg,var(--dark2),var(--dark));color:#fff;text-align:center;position:relative}
+.article-back{position:absolute;top:16px;left:16px;display:flex;align-items:center;gap:4px;font-size:14px;cursor:pointer;opacity:.9}
+.article-back svg{width:18px;height:18px}
+.article-icon{font-size:48px;margin:20px 0 12px}
+.article-title{font-size:18px;font-weight:600;line-height:1.4;margin-bottom:12px}
+.article-meta{display:flex;justify-content:center;gap:16px;font-size:12px;opacity:.8}
+.article-content{padding:20px 16px;background:var(--white);min-height:calc(100vh - 280px)}
+.article-content h2{font-size:16px;color:var(--dark);margin:24px 0 12px;font-weight:600}
+.article-content h2:first-child{margin-top:0}
+.article-content p{font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:12px}
+.article-content ul{margin:12px 0;padding-left:20px}
+.article-content li{font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:6px}
+.article-content .highlight{background:rgba(184,48,48,.08);padding:12px 16px;border-radius:8px;border-left:3px solid var(--dark);margin:16px 0}
+.article-content .highlight p{margin:0;color:var(--dark);font-weight:500}
+
+/* Risk */
+.risk{padding:10px 16px;text-align:left;background:var(--white);margin:0 12px 12px;border-radius:10px}
+.risk-text{font-size:11px;color:var(--text3);line-height:1.6}
+.risk-in-filter{margin:12px 0 0 0;border-radius:0;position:relative;z-index:1}
+
+/* Filter Page */
+.filter-search{padding:12px 16px;background:var(--white)}
+.search-box{display:flex;align-items:center;background:var(--bg);border-radius:20px;padding:10px 16px}
+.search-box svg{width:16px;height:16px;color:var(--text3);margin-right:8px;flex-shrink:0}
+.search-box input{flex:1;border:none;background:none;font-size:14px;color:var(--text);outline:none}
+.search-box input::placeholder{color:var(--text3)}
+.filter-cats{display:flex;gap:6px;padding:10px 16px;background:var(--white);border-bottom:1px solid var(--border);overflow-x:auto}
+.filter-cats::-webkit-scrollbar{display:none}
+.filter-cat{flex-shrink:0;padding:6px 16px;border-radius:14px;font-size:13px;color:var(--text2);background:var(--bg);cursor:pointer;transition:all .2s;border:1px solid transparent}
+.filter-cat.active{background:var(--dark);color:#fff}
+.filter-subcats{display:flex;gap:6px;padding:10px 16px;background:var(--white);border-bottom:1px solid var(--border);overflow-x:auto}
+.filter-subcats::-webkit-scrollbar{display:none}
+.filter-subcat{flex-shrink:0;padding:4px 12px;border-radius:10px;font-size:11px;color:var(--text2);background:#f0f0f0;cursor:pointer;transition:all .2s}
+.filter-subcat.active{background:rgba(184,48,48,.15);color:var(--dark)}
+.filter-list-head{display:flex;padding:12px 16px;background:var(--white);border-bottom:1px solid var(--border)}
+.filter-list-head span{flex:1;font-size:11px;color:var(--text3);text-align:center;cursor:pointer}
+.filter-list-head span:first-child{text-align:left;flex:1.5}
+.filter-list-head span:last-child{text-align:right}
+.filter-list-head span.sorted{color:#b83030}
+.filter-list{background:var(--white)}
+.filter-etf{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #f8f8f8;cursor:pointer}
+.filter-etf:last-child{border-bottom:none}
+.filter-etf:active{background:#f9f9f9}
+.fe-name{flex:1.5}
+.fe-name .fn{font-size:14px;color:var(--text);font-weight:500}
+.fe-name .fc{font-size:11px;color:var(--text3);margin-top:2px}
+.fe-tags{display:flex;gap:4px;margin-top:4px}
+.fe-tag{font-size:9px;color:var(--dark);background:rgba(184,48,48,.1);padding:1px 6px;border-radius:4px}
+.fe-price{flex:1;text-align:center;font-size:14px;color:var(--text)}
+.fe-chg{flex:1;text-align:right;font-size:14px;font-weight:600}
+.fe-chg.up{color:var(--rise)}
+.fe-chg.down{color:var(--fall)}
+.fe-vol{flex:1;text-align:right;font-size:12px;color:var(--text2)}
+
+/* Educate */
+.edu-banner{background:linear-gradient(135deg,var(--dark),var(--dark2),var(--dark));padding:24px 20px;position:relative;overflow:hidden}
+.edu-banner::before{content:'';position:absolute;top:-50%;right:-20%;width:60%;height:200%;background:radial-gradient(ellipse,rgba(232,180,180,.1) 0%,transparent 70%)}
+.edu-banner *{position:relative;z-index:1}
+.edu-banner .eb-title{font-size:20px;font-weight:700;color:#fff;margin-bottom:6px}
+.edu-banner .eb-sub{font-size:13px;color:rgba(255,255,255,.7)}
+.edu-stats{display:flex;margin-top:18px}
+.edu-stat{flex:1;text-align:center}
+.edu-stat .num{display:block;font-size:18px;font-weight:600;color:#f0c0c0}
+.edu-stat .lbl{display:block;font-size:11px;color:rgba(255,255,255,.6);margin-top:4px}
+.edu-cats{background:var(--white);padding:12px 0;border-bottom:1px solid var(--border);overflow-x:auto}
+.edu-cats::-webkit-scrollbar{display:none}
+.edu-cats-inner{display:inline-flex;padding:0 12px;gap:8px}
+.edu-cat{display:inline-flex;flex-direction:column;align-items:center;padding:10px 16px;border-radius:12px;background:var(--bg);min-width:64px;cursor:pointer;transition:all .2s}
+.edu-cat.active{background:linear-gradient(135deg,#d05050,#b83030)}
+.edu-cat .ec-icon{font-size:20px;margin-bottom:4px}
+.edu-cat .ec-name{font-size:12px;color:var(--text2)}
+.edu-cat.active .ec-name{color:#fff}
+.edu-list{padding:12px}
+.edu-item{display:flex;background:var(--white);border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,.04);cursor:pointer;transition:all .15s}
+.edu-item:active{opacity:.9}
+.edu-cover{width:90px;height:64px;border-radius:8px;flex-shrink:0;margin-right:14px;background:linear-gradient(135deg,var(--dark2),var(--dark));display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.edu-cover .video-tag{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;font-size:9px;padding:2px 6px;border-radius:4px;display:flex;align-items:center;gap:2px}
+.edu-info{flex:1;display:flex;flex-direction:column;justify-content:space-between}
+.edu-info .ei-title{font-size:14px;color:var(--text);font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.edu-info .ei-desc{font-size:12px;color:var(--text3);margin-top:4px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.edu-info .ei-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.ei-left{display:flex;gap:8px}
+.ei-tag{font-size:10px;color:var(--dark);background:rgba(184,48,48,.1);padding:1px 8px;border-radius:4px}
+.ei-level{font-size:10px;color:var(--text2);background:var(--bg);padding:1px 8px;border-radius:4px}
+.ei-views{font-size:11px;color:var(--text3)}
+.quick-section{margin:12px;background:var(--white);border-radius:12px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+.quick-title{font-size:16px;font-weight:600;color:var(--dark);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.step-item{display:flex;padding:12px 0;border-bottom:1px solid #f5f5f5}
+.step-item:last-child{border-bottom:none}
+.step-num{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#d05050,#b83030);color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px}
+.step-content .st-title{font-size:14px;color:var(--text);font-weight:500;margin-bottom:4px}
+.step-content .st-desc{font-size:12px;color:var(--text3);line-height:1.5}
+.faq-section{margin:12px;background:var(--white);border-radius:12px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+.faq-item{border-bottom:1px solid #f5f5f5}
+.faq-item:last-child{border-bottom:none}
+.faq-q{display:flex;align-items:center;padding:12px 0;cursor:pointer}
+.faq-badge{width:20px;height:20px;border-radius:5px;background:#d05050;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:10px}
+.faq-q-text{flex:1;font-size:14px;color:var(--text);line-height:1.4}
+.faq-arrow{font-size:10px;color:var(--text3);transition:transform .2s}
+.faq-item.open .faq-arrow{transform:rotate(180deg)}
+.faq-a{display:none;padding:0 0 12px 30px}
+.faq-item.open .faq-a{display:flex;align-items:flex-start}
+.faq-a-badge{width:20px;height:20px;border-radius:5px;background:var(--dark);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:10px}
+.faq-a-text{font-size:13px;color:var(--text2);line-height:1.6}
+
+@keyframes fadeInUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.section{animation:fadeInUp .4s ease both}
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="phone-statusbar">
+    <span class="time" id="statusTime">9:41</span>
+    <div class="icons">
+      <svg width="16" height="12" viewBox="0 0 16 12"><rect x="0" y="6" width="3" height="6" rx="1" fill="#fff"/><rect x="4.5" y="4" width="3" height="8" rx="1" fill="#fff"/><rect x="9" y="1" width="3" height="11" rx="1" fill="#fff"/><rect x="13.5" y="0" width="3" height="12" rx="1" fill="#fff" opacity=".3"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2C5.5 2 3.2 3 1.5 4.5L0 3c2-1.8 4.8-3 8-3s6 1.2 8 3l-1.5 1.5C12.8 3 10.5 2 8 2z" fill="#fff"/><path d="M8 5.5c-1.7 0-3.2.7-4.3 1.7L2 5.5C3.5 4.2 5.6 3.5 8 3.5s4.5.7 6 2l-1.7 1.7C11.2 6.2 9.7 5.5 8 5.5z" fill="#fff"/><circle cx="8" cy="9.5" r="1.5" fill="#fff"/></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12"><rect x="0" y="1" width="20" height="10" rx="2" stroke="#fff" stroke-width="1" fill="none"/><rect x="1.5" y="2.5" width="14" height="7" rx="1" fill="#fff"/><rect x="21" y="4" width="2" height="4" rx="1" fill="#fff" opacity=".4"/></svg>
+    </div>
+  </div>
+
+  <div class="phone-nav">
+    <div class="nav-search" id="navSearch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="搜索ETF" id="navSearchInput">
+    </div>
+    <div class="nav-title" id="navTitle">ETF手册</div>
+  </div>
+
+  <div class="phone-content" id="content">
+
+    <!-- HOME PAGE -->
+    <div class="page active" id="page-home">
+      <div class="banner" id="banner">
+        <div class="banner-track" id="bannerTrack">
+          <div class="banner-slide s1"><div><div class="banner-tag">热门推荐</div><div class="banner-title">沪深300ETF</div><div class="banner-desc">跟踪A股核心资产，一键配置大盘蓝筹</div><div class="banner-btn">立即查看</div></div></div>
+          <div class="banner-slide s2"><div><div class="banner-tag">行业热点</div><div class="banner-title">半导体ETF</div><div class="banner-desc">国产替代加速，芯片产业链投资机遇</div><div class="banner-btn">了解更多</div></div></div>
+          <div class="banner-slide s3"><div><div class="banner-tag">投教专区</div><div class="banner-title">ETF投资学堂</div><div class="banner-desc">从入门到精通，掌握ETF投资技巧</div><div class="banner-btn">开始学习</div></div></div>
+        </div>
+        <div class="banner-dots" id="bannerDots"><div class="banner-dot active"></div><div class="banner-dot"></div><div class="banner-dot"></div></div>
+      </div>
+
+      <!-- A股指数 - 实时数据 -->
+      <div class="section">
+        <div class="section-head">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="section-title">A股指数</span>
+            <span class="badge open" id="marketBadge"><span class="badge-dot"></span><span id="marketStatus">交易中</span></span>
+          </div>
+          <span style="font-size:11px;color:var(--text3)" id="marketTime"></span>
+        </div>
+        <div class="index-cards" id="indexCards">
+          <div class="loading"><div class="loading-spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- ETF市场表现 - 实时数据 -->
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">ETF市场表现</span>
+          <div class="perf-tabs" id="perfTabs">
+            <div class="perf-tab active" data-tab="rise">涨幅</div>
+            <div class="perf-tab" data-tab="fall">跌幅</div>
+            <span class="section-more" id="perfMore" style="margin-left:8px">更多 ></span>
+          </div>
+        </div>
+        <div class="market-cats" id="marketCats"></div>
+        <div class="perf-overview" id="perfOverview">
+          <div class="loading"><div class="loading-spinner"></div></div>
+        </div>
+        <div id="perfList"></div>
+      </div>
+
+      <!-- 热门ETF指数 - 实时数据 -->
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">热门ETF指数</span>
+          <span class="section-more" id="hotMore">更多 ></span>
+        </div>
+        <div class="hot-tags" id="hotTags"></div>
+        <div class="hot-grid" id="hotGrid">
+          <div class="loading"><div class="loading-spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- 投教精选 -->
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">投教精选</span>
+          <span class="section-more" id="eduMore" style="cursor:pointer">更多 ></span>
+        </div>
+        <div id="artList"></div>
+      </div>
+
+      <div class="risk"><span class="risk-text">风险提示：平台所有信息展示均为客观数据，任何信息或意见不构成投资建议或承诺，请谨慎参考。市场有风险，投资需谨慎。</span></div>
+    </div>
+
+    <!-- FILTER PAGE -->
+    <div class="page" id="page-filter">
+      <div class="filter-search">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="搜索ETF代码/名称" id="searchInput" oninput="filterETFs()">
+        </div>
+      </div>
+      <div class="filter-cats" id="filterCats"></div>
+      <div class="filter-subcats" id="filterSubcats"></div>
+      <div class="filter-list-head">
+        <span data-sort="name">名称</span>
+        <span data-sort="price">最新价</span>
+        <span data-sort="chg">涨跌幅</span>
+        <span data-sort="amount">成交额</span>
+      </div>
+      <div class="filter-list" id="filterList">
+        <div class="loading"><div class="loading-spinner"></div></div>
+      </div>
+      <div class="risk risk-in-filter"><span class="risk-text">风险提示：平台所有信息展示均为客观数据，任何信息或意见不构成投资建议或承诺，请谨慎参考。市场有风险，投资需谨慎。</span></div>
+    </div>
+
+    <!-- EDUCATE PAGE -->
+    <div class="page" id="page-educate">
+      <div class="edu-banner">
+        <div class="eb-title">ETF投资学堂</div>
+        <div class="eb-sub">从入门到精通，掌握ETF投资技巧</div>
+        <div class="edu-stats">
+          <div class="edu-stat"><span class="num" id="eduArticleCount">5</span><span class="lbl">篇文章</span></div>
+          <div class="edu-stat"><span class="num" id="eduVideoCount">0</span><span class="lbl">个视频</span></div>
+          <div class="edu-stat"><span class="num" id="eduReadCount">11.5万</span><span class="lbl">次阅读</span></div>
+        </div>
+      </div>
+      <div class="edu-cats">
+        <div class="edu-cats-inner" id="eduCats"></div>
+      </div>
+      <div class="edu-list" id="eduList"></div>
+      <div class="quick-section">
+        <div class="quick-title">快速入门</div>
+        <div class="step-item"><div class="step-num">1</div><div class="step-content"><div class="st-title">了解ETF基本概念</div><div class="st-desc">ETF是交易型开放式指数基金，兼具股票和基金的优点</div></div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-content"><div class="st-title">选择合适的ETF</div><div class="st-desc">根据投资目标、风险偏好选择合适的ETF品种</div></div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-content"><div class="st-title">开立证券账户</div><div class="st-desc">在证券公司开立A股账户，即可交易ETF</div></div></div>
+        <div class="step-item"><div class="step-num">4</div><div class="step-content"><div class="st-title">开始交易</div><div class="st-desc">像买卖股票一样，在交易时间买卖ETF份额</div></div></div>
+      </div>
+      <div class="faq-section">
+        <div class="quick-title">常见问题</div>
+        <div id="faqList"></div>
+      </div>
+      <div class="risk"><span class="risk-text">风险提示：平台所有信息展示均为客观数据，任何信息或意见不构成投资建议或承诺，请谨慎参考。市场有风险，投资需谨慎。</span></div>
+      <div style="height:20px"></div>
+    </div>
+
+    <!-- ARTICLE DETAIL PAGE -->
+    <div class="page" id="page-article">
+      <div class="article-header">
+        <div class="article-back" id="articleBack">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span>返回</span>
+        </div>
+        <div class="article-icon" id="articleIcon"></div>
+        <h1 class="article-title" id="articleTitle"></h1>
+        <div class="article-meta" id="articleMeta"></div>
+      </div>
+      <div class="article-content" id="articleContent"></div>
+      <div class="risk"><span class="risk-text">风险提示：平台所有信息展示均为客观数据，任何信息或意见不构成投资建议或承诺，请谨慎参考。市场有风险，投资需谨慎。</span></div>
+    </div>
+
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab-item active" data-page="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="none"/></svg>
+      <span>发现</span>
+    </div>
+    <div class="tab-item" data-page="filter">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="16" y2="12"/><line x1="4" y1="18" x2="12" y2="18"/><circle cx="18" cy="12" r="3"/><line x1="20.2" y1="14.2" x2="22" y2="16"/></svg>
+      <span>ETF看板</span>
+    </div>
+    <div class="tab-item" data-page="educate">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      <span>ETF投教</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== ARTICLE CONTENT FUNCTIONS =====================
+function article1Content(){
+  return `
+    <h2>什么是ETF？</h2>
+    <p>ETF（Exchange Traded Fund），中文名为"交易型开放式指数基金"，是一种在证券交易所上市交易的基金产品。它兼具股票和基金的双重特性，既可以在二级市场像股票一样买卖，又具有基金分散投资的特点。</p>
+    
+    <div class="highlight"><p>核心特点：跟踪指数 + 场内交易 + 费用低廉</p></div>
+    
+    <h2>ETF的运作原理</h2>
+    <p>ETF通过复制某一特定指数（如沪深300指数、中证500指数等）的成分股及权重，力求实现与指数表现一致的收益。基金管理人会按照指数成分股的比例购买股票，投资者购买ETF份额就相当于间接投资了指数中的所有成分股。</p>
+    
+    <h2>ETF vs 普通基金 vs 股票</h2>
+    <ul>
+      <li><strong>交易方式</strong>：ETF像股票一样实时交易，普通基金每日收盘后统一结算</li>
+      <li><strong>透明度</strong>：ETF每日公布持仓，普通基金定期披露</li>
+      <li><strong>费用</strong>：ETF管理费率通常0.5%左右，普通基金1%-1.5%</li>
+      <li><strong>灵活性</strong>：ETF可随时买卖，普通基金申赎有时间限制</li>
+    </ul>
+    
+    <h2>为什么投资ETF？</h2>
+    <p>ETF是懒人理财的利器。它帮助投资者一键买入一篮子股票，实现分散投资，降低个股风险。同时，由于被动跟踪指数，避免了主动管理的人为判断失误，长期来看往往能够战胜大部分主动型基金。</p>
+  `;
+}
+
+function article2Content(){
+  return `
+    <h2>ETF与股票的区别</h2>
+    <p>虽然ETF和股票都在证券交易所交易，但两者有本质区别：</p>
+    <ul>
+      <li><strong>投资标的</strong>：股票是单一公司的股权，ETF是一篮子股票的组合</li>
+      <li><strong>风险分散</strong>：单只股票风险集中，ETF天然实现分散投资</li>
+      <li><strong>研究难度</strong>：股票需要深入研究公司基本面，ETF只需判断行业或市场趋势</li>
+      <li><strong>交易费用</strong>：股票交易有印花税（0.1%），ETF免印花税</li>
+    </ul>
+    
+    <h2>ETF与普通基金的区别</h2>
+    <p>ETF与普通开放式基金（场外基金）的主要区别：</p>
+    <ul>
+      <li><strong>交易场所</strong>：ETF在交易所实时交易，普通基金通过基金公司或第三方平台申赎</li>
+      <li><strong>价格机制</strong>：ETF价格实时波动，普通基金每日收盘后计算净值</li>
+      <li><strong>费用结构</strong>：ETF管理费更低，且无申购赎回费（仅交易佣金）</li>
+      <li><strong>资金效率</strong>：ETF卖出资金当日可用，普通基金赎回需T+1或更长时间</li>
+    </ul>
+    
+    <div class="highlight"><p>一句话总结：ETF兼具股票的灵活性、基金的分散性，且费用更低、透明度更高。</p></div>
+    
+    <h2>适合谁投资？</h2>
+    <p>ETF适合希望获得市场平均收益、不想花大量时间研究个股、追求低成本的投资者。无论是新手还是资深投资者，ETF都是资产配置的重要工具。</p>
+  `;
+}
+
+function article3Content(){
+  return `
+    <h2>ETF的诞生</h2>
+    <p>1993年，全球第一只ETF——标准普尔存托凭证（SPDR）在美国诞生，跟踪标普500指数。这只ETF的推出标志着指数投资进入了一个新时代。</p>
+    
+    <h2>发展历程</h2>
+    <ul>
+      <li><strong>1990年代</strong>：ETF在美国起步，主要以宽基指数为主</li>
+      <li><strong>2000年代</strong>：行业ETF、商品ETF等创新产品涌现</li>
+      <li><strong>2004年</strong>：国内第一只ETF——华夏上证50ETF成立</li>
+      <li><strong>2010年代</strong>：Smart Beta、跨境ETF等策略型产品快速发展</li>
+      <li><strong>2020年代</strong>：ETF产品爆发式增长，覆盖各类资产和策略</li>
+    </ul>
+    
+    <h2>中国ETF市场发展</h2>
+    <p>中国ETF市场虽然起步较晚，但发展迅速。截至2024年，国内ETF总规模已突破2万亿元，产品数量超过800只，涵盖股票、债券、商品、跨境等多个类别。</p>
+    
+    <div class="highlight"><p>里程碑：2004年华夏上证50ETF成立，开启中国ETF时代；2012年跨境ETF推出，实现全球化配置。</p></div>
+    
+    <h2>未来趋势</h2>
+    <p>随着投资者教育的深入和机构化程度提升，ETF正从机构工具走向大众理财。未来，主动管理型ETF、ESG主题ETF、加密货币ETF等创新产品将继续丰富ETF生态。</p>
+  `;
+}
+
+function article4Content(){
+  return `
+    <h2>宽基ETF</h2>
+    <p>宽基ETF跟踪大盘指数，覆盖多个行业，是分散投资的理想选择。常见品种包括：</p>
+    <ul>
+      <li><strong>沪深300ETF</strong>：跟踪A股核心资产，大盘蓝筹代表</li>
+      <li><strong>中证500ETF</strong>：覆盖中小市值公司，成长风格</li>
+      <li><strong>创业板ETF</strong>：聚焦科技创新企业，波动性较大</li>
+      <li><strong>科创50ETF</strong>：科创板龙头公司，硬科技属性</li>
+    </ul>
+    
+    <h2>行业ETF</h2>
+    <p>行业ETF聚焦特定行业，适合看好某一领域的投资者：</p>
+    <ul>
+      <li><strong>科技类</strong>：半导体ETF、人工智能ETF、5GETF</li>
+      <li><strong>消费类</strong>：食品饮料ETF、医药ETF、家电ETF</li>
+      <li><strong>金融类</strong>：银行ETF、证券ETF、保险ETF</li>
+      <li><strong>周期类</strong>：有色金属ETF、煤炭ETF、钢铁ETF</li>
+    </ul>
+    
+    <h2>跨境ETF</h2>
+    <p>跨境ETF让投资者可以便捷投资海外市场：</p>
+    <ul>
+      <li><strong>港股ETF</strong>：恒生科技ETF、恒生医疗ETF</li>
+      <li><strong>美股ETF</strong>：纳斯达克100ETF、标普500ETF</li>
+      <li><strong>其他市场</strong>：德国DAX ETF、日经225 ETF</li>
+    </ul>
+    
+    <h2>债券与货币ETF</h2>
+    <p>低风险投资者的稳健选择：</p>
+    <ul>
+      <li><strong>债券ETF</strong>：国债ETF、可转债ETF、短融ETF</li>
+      <li><strong>货币ETF</strong>：场内货币基金，T+0交易，流动性好</li>
+    </ul>
+    
+    <div class="highlight"><p>选择建议：新手建议从宽基ETF开始，逐步配置行业和跨境ETF，债券ETF作为稳健底仓。</p></div>
+  `;
+}
+
+function article5Content(){
+  return `
+    <h2>ETF的交易门槛</h2>
+    <p>ETF的交易门槛非常低，是普通投资者最容易入门的投资工具之一：</p>
+    <ul>
+      <li><strong>最小交易单位</strong>：100份（1手），与股票相同</li>
+      <li><strong>价格区间</strong>：ETF价格从几毛钱到几块钱不等</li>
+      <li><strong>最低资金</strong>：几百元即可开始投资</li>
+      <li><strong>交易费用</strong>：佣金约万分之2.5，无印花税</li>
+    </ul>
+    
+    <h2>具体计算</h2>
+    <p>以价格为1元的ETF为例：</p>
+    <ul>
+      <li>买入100份 = 100元</li>
+      <li>交易佣金 = 100 × 0.025% = 0.025元（最低5元）</li>
+      <li>实际最低投入约105元即可交易</li>
+    </ul>
+    
+    <h2>定投门槛更低</h2>
+    <p>如果采用定投策略，每次投入100-300元即可。很多券商支持ETF定投功能，可以设置每周或每月自动买入，非常适合工薪阶层积累财富。</p>
+    
+    <div class="highlight"><p>核心优势：相比股票动辄几千元的单只投入，ETF让资金有限的投资者也能实现分散投资。</p></div>
+    
+    <h2>注意事项</h2>
+    <p>虽然门槛低，但建议新手：</p>
+    <ul>
+      <li>先学习基础知识，了解ETF的运作机制</li>
+      <li>从宽基ETF开始，避免盲目追逐热门行业</li>
+      <li>做好长期持有准备，避免频繁交易</li>
+      <li>合理配置资产，不要把所有资金投入单一品种</li>
+    </ul>
+  `;
+}
+
+// ===================== API CONFIG =====================
+const API_BASE = 'http://localhost:8000';
+
+// ===================== DATA =====================
+const articles=[
+  {id:1,title:'ETF是什么？—— 一张图看懂ETF',tag:'基础知识',time:'2024-06-15',views:'3.2万',icon:'📊',content:article1Content()},
+  {id:2,title:'ETF与股票、普通基金有什么不同？',tag:'基础知识',time:'2024-06-14',views:'2.8万',icon:'⚖️',content:article2Content()},
+  {id:3,title:'ETF的诞生与发展简史',tag:'基础知识',time:'2024-06-13',views:'2.1万',icon:'📈',content:article3Content()},
+  {id:4,title:'国内常见的ETF类型有哪些？',tag:'基础知识',time:'2024-06-12',views:'1.9万',icon:'🗂️',content:article4Content()},
+  {id:5,title:'投资ETF的最小资金门槛是多少？',tag:'基础知识',time:'2024-06-11',views:'1.5万',icon:'💰',content:article5Content()}
+];
+
+const eduData={
+  stats:{articles:5,videos:0,reads:'11.5万'},
+  categories:[
+    {id:'all',name:'全部',icon:'📚'},
+    {id:'basic',name:'基础知识',icon:'📖'}
+  ],
+  faq:[
+    {q:'ETF和股票有什么区别？',a:'ETF是基金，投资于一篮子股票；股票是单一公司的股权。ETF具有分散风险、费用低、透明度高等特点。'},
+    {q:'ETF可以在哪里购买？',a:'ETF可以在证券公司开立A股账户后，像买卖股票一样在交易所交易。也可以通过场外申购ETF联接基金。'},
+    {q:'ETF的交易费用是多少？',a:'ETF交易佣金与股票相同，一般为万分之2.5-3，无印花税。管理费率约0.5%/年，托管费率约0.1%/年。'},
+    {q:'ETF适合长期投资吗？',a:'是的，ETF非常适合长期投资。宽基ETF跟踪大盘指数，长期来看能够分享经济增长的红利。'},
+    {q:'如何选择合适的ETF？',a:'可以从跟踪指数、基金规模、流动性、费率等维度进行选择。新手建议从宽基ETF开始。'},
+    {q:'ETF的最小买入单位是多少？',a:'ETF的最小买入单位为100份（1手），部分ETF价格在1元左右，几百元即可开始投资。'},
+    {q:'ETF会清盘吗？',a:'当ETF规模持续低于5000万且连续60个工作日时，基金公司可能会选择清盘。选择规模较大的ETF可以降低清盘风险。'},
+    {q:'什么是ETF折溢价？',a:'ETF在二级市场的交易价格与基金净值之间的差异就是折溢价。溢价表示交易价格高于净值，折价表示交易价格低于净值。'}
+  ]
+};
+
+// ===================== API FUNCTIONS =====================
+async function apiGet(path) {
+  try {
+    const res = await fetch(API_BASE + path);
+    return await res.json();
+  } catch(e) {
+    console.error('API Error:', e);
+    return null;
+  }
+}
+
+// ===================== BANNER =====================
+let bannerIdx=0;
+const bannerTrack=document.getElementById('bannerTrack');
+const bannerDots=document.getElementById('bannerDots').children;
+function slideBanner(){
+  bannerIdx=(bannerIdx+1)%3;
+  bannerTrack.style.transform=`translateX(-${bannerIdx*100}%)`;
+  Array.from(bannerDots).forEach((d,i)=>d.classList.toggle('active',i===bannerIdx));
+}
+setInterval(slideBanner,4000);
+
+// ===================== TIME =====================
+function updateTime(){
+  const n=new Date();
+  const h=String(n.getHours()).padStart(2,'0');
+  const m=String(n.getMinutes()).padStart(2,'0');
+  document.getElementById('statusTime').textContent=h+':'+m;
+  const wd=['日','一','二','三','四','五','六'];
+  document.getElementById('marketTime').textContent=`${n.getMonth()+1}月${n.getDate()}日 周${wd[n.getDay()]} ${h}:${m}`;
+  const isTrade=(n.getHours()===9&&n.getMinutes()>=30)||(n.getHours()===10)||(n.getHours()===11&&n.getMinutes()<=30)||(n.getHours()>=13&&n.getHours()<15);
+  const badge=document.getElementById('marketBadge');
+  const status=document.getElementById('marketStatus');
+  badge.className='badge '+(isTrade?'open':'close');
+  status.textContent=isTrade?'交易中':'已休市';
+}
+updateTime();setInterval(updateTime,60000);
+
+// ===================== TAB SWITCH =====================
+const tabs=document.querySelectorAll('.tab-item');
+const pages=document.querySelectorAll('.page');
+const navTitle=document.getElementById('navTitle');
+const titles={home:'发现',filter:'ETF看板',educate:'ETF投教'};
+function switchTab(pg){
+  tabs.forEach(t=>t.classList.remove('active'));
+  document.querySelector('[data-page="'+pg+'"]').classList.add('active');
+  pages.forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+pg).classList.add('active');
+  navTitle.textContent=titles[pg];
+  document.getElementById('content').scrollTop=0;
+  document.getElementById('navSearch').style.display=(pg==='home')?'flex':'none';
+  document.getElementById('navTitle').style.display=(pg==='home')?'':'none';
+  document.getElementById('navSearchInput').value='';
+}
+tabs.forEach(tab=>{
+  tab.addEventListener('click',()=>switchTab(tab.dataset.page));
+});
+
+// 顶部搜索框
+document.getElementById('navSearchInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    const val=document.getElementById('navSearchInput').value.trim();
+    if(!val)return;
+    switchTab('filter');
+    document.getElementById('searchInput').value=val;
+    filterETFs();
+  }
+});
+
+// "更多" 按钮跳转到ETF筛选页
+document.getElementById('perfMore').addEventListener('click',()=>switchTab('filter'));
+document.getElementById('hotMore').addEventListener('click',()=>switchTab('filter'));
+
+// ===================== REAL-TIME DATA =====================
+
+// 加载A股指数
+async function loadIndexData() {
+  const data = await apiGet('/api/index');
+  if (!data || !data.data) return;
+  
+  const container = document.getElementById('indexCards');
+  container.innerHTML = data.data.map(idx => {
+    const isUp = idx.chg >= 0;
+    return `<div class="index-card ${isUp?'up':'down'}">
+      <div class="name">${idx.name}</div>
+      <div class="val">${idx.price}</div>
+      <div class="chg ${isUp?'up':'down'}">${isUp?'+':''}${idx.chg_amount} (${isUp?'+':''}${idx.chg}%)</div>
+    </div>`;
+  }).join('');
+}
+
+// 加载市场统计
+async function loadMarketStats() {
+  const data = await apiGet('/api/stats');
+  if (!data) return;
+  
+  document.getElementById('perfOverview').innerHTML = `
+    <div class="perf-stat"><span class="label">ETF总数</span><span class="value">${data.total}</span></div>
+    <div class="perf-divider"></div>
+    <div class="perf-stat"><span class="label">上涨</span><span class="value" style="color:var(--rise)">${data.rise}</span></div>
+    <div class="perf-divider"></div>
+    <div class="perf-stat"><span class="label">下跌</span><span class="value" style="color:var(--fall)">${data.fall}</span></div>
+    <div class="perf-divider"></div>
+    <div class="perf-stat"><span class="label">总成交额</span><span class="value">${(data.total_amount/10000).toFixed(1)}亿</span></div>
+  `;
+}
+
+// 加载ETF排行
+let isLoadingETFTop = false;
+async function loadETFTop(type='rise', limit=5, category='全部') {
+  if (isLoadingETFTop) return;
+  isLoadingETFTop = true;
+  
+  try {
+    let url = `/api/etf/top?type=${type}&limit=${limit}`;
+    if (category && category !== '全部') {
+      url = `/api/etf/list?category=${category}&sort=chg&order=${type==='rise'?'desc':'asc'}&limit=${limit}`;
+    }
+    const data = await apiGet(url);
+    if (!data || !data.data) return;
+    
+    const container = document.getElementById('perfList');
+    container.innerHTML = '<div class="tbl-head"><span class="tbl-col-name" style="flex:2">名称/代码</span><span class="tbl-col-price" style="flex:1;text-align:center">最新价</span><span class="tbl-col-chg" style="flex:1;text-align:right">涨跌幅</span></div>' +
+      data.data.map(e => `<div class="tbl-row">
+        <div class="tbl-col-name"><div class="etf-name">${e.name}</div><div class="etf-code">${e.code}</div></div>
+        <span class="tbl-col-price">${e.price}</span>
+        <div class="tbl-col-chg"><span class="chg-badge ${e.chg>=0?'up':'down'}">${e.chg>=0?'+':''}${e.chg}%</span></div>
+      </div>`).join('');
+  } finally {
+    isLoadingETFTop = false;
+  }
+}
+
+// 加载热门ETF
+async function loadHotETF(category='宽基', sort='rise', limit=6) {
+  const order = sort === 'fall' ? 'asc' : 'desc';
+  const data = await apiGet(`/api/etf/list?category=${category}&sort=chg&order=${order}&limit=${limit}`);
+  if (!data || !data.data) return;
+  
+  let list = data.data;
+  if (sort === 'rise') list = list.filter(e => e.chg > 0);
+  else if (sort === 'fall') list = list.filter(e => e.chg < 0);
+  
+  const container = document.getElementById('hotGrid');
+  container.innerHTML = list.slice(0, limit).map(e => `
+    <div class="hot-card">
+      <div class="hc-head"><span class="hc-name">${e.name}</span><div>${e.tags.map(t=>`<span class="mini-tag">${t}</span>`).join('')}</div></div>
+      <div class="hc-price-row"><span class="hc-price">${e.price}</span><span class="hc-chg ${e.chg>=0?'up':'down'}">${e.chg>=0?'+':''}${e.chg}%</span></div>
+      <div class="hc-vol">成交额 ${e.amount}万</div>
+    </div>
+  `).join('');
+}
+
+// 加载筛选页ETF
+async function loadFilterETF(category='全部', sub='全部', sort='chg', order='desc') {
+  const cat = category === '全部' ? '' : category;
+  const data = await apiGet(`/api/etf/list?category=${cat}&sort=${sort}&order=${order}&limit=100`);
+  if (!data || !data.data) return;
+  
+  let list = data.data;
+  if (sub !== '全部' && sub) {
+    list = list.filter(e => e.name.includes(sub));
+  }
+  
+  const container = document.getElementById('filterList');
+  container.innerHTML = list.map(e => `
+    <div class="filter-etf">
+      <div class="fe-name">
+        <div class="fn">${e.name}</div>
+        <div class="fc">${e.code}</div>
+        <div class="fe-tags">${e.tags.map(t=>`<span class="fe-tag">${t}</span>`).join('')}</div>
+      </div>
+      <span class="fe-price">${e.price}</span>
+      <span class="fe-chg ${e.chg>=0?'up':'down'}">${e.chg>=0?'+':''}${e.chg}%</span>
+      <span class="fe-vol">${e.amount}万</span>
+    </div>
+  `).join('') || '<div style="text-align:center;padding:40px;color:var(--text3);font-size:14px">暂无符合条件的ETF</div>';
+}
+
+// ===================== MARKET PERFORMANCE =====================
+const marketCats=['全部','行业','主题','T+0','跨境','商品','债券','货币'];
+let activeMarketCat='全部';
+let perfTab='rise';
+
+function renderMarketCats(){
+  const container = document.getElementById('marketCats');
+  // 如果子元素数量不对，重新创建
+  if (container.children.length !== marketCats.length) {
+    container.innerHTML = marketCats.map(c=>`<div class="market-cat ${c===activeMarketCat?'active':''}" data-cat="${c}">${c}</div>`).join('');
+  } else {
+    // 只更新class，不重新创建元素
+    Array.from(container.children).forEach(child => {
+      child.classList.toggle('active', child.dataset.cat === activeMarketCat);
+    });
+  }
+}
+renderMarketCats();
+
+document.getElementById('marketCats').addEventListener('click',e=>{
+  const t=e.target.closest('.market-cat');
+  if(!t)return;
+  if(t.dataset.cat===activeMarketCat)return;
+  e.stopPropagation();
+  activeMarketCat=t.dataset.cat;
+  renderMarketCats();
+  loadMarketStats();
+  loadETFTop(perfTab, 5, activeMarketCat);
+});
+
+document.getElementById('perfTabs').addEventListener('click',e=>{
+  const t=e.target.closest('.perf-tab');
+  if(!t)return;
+  if(t.dataset.tab===perfTab)return;
+  e.stopPropagation();
+  perfTab=t.dataset.tab;
+  document.querySelectorAll('#perfTabs .perf-tab').forEach(x=>x.classList.toggle('active',x===t));
+  loadETFTop(perfTab, 5, activeMarketCat);
+});
+
+// ===================== HOT ETF =====================
+const hotCats=['宽基','行业','主题'];
+const hotSorts=[{key:'rise',label:'涨幅'},{key:'fall',label:'跌幅'}];
+let hotCat='宽基';
+let hotSort='rise';
+
+function renderHotTags(){
+  const catHtml=hotCats.map(c=>`<div class="hot-tag ${c===hotCat?'active':''}" data-type="cat" data-cat="${c}">${c}</div>`).join('');
+  const sortHtml=hotSorts.map(s=>`<div class="hot-tag ${s.key===hotSort?'sort-active':''}" data-type="sort" data-sort="${s.key}">${s.label}</div>`).join('');
+  document.getElementById('hotTags').innerHTML=catHtml+'<span style="width:1px;height:20px;background:var(--border);margin:0 4px;flex-shrink:0"></span>'+sortHtml;
+}
+renderHotTags();
+
+document.getElementById('hotTags').addEventListener('click',e=>{
+  const t=e.target.closest('.hot-tag');
+  if(!t)return;
+  if(t.dataset.type==='cat') hotCat=t.dataset.cat;
+  else if(t.dataset.type==='sort') hotSort=t.dataset.sort;
+  renderHotTags();
+  loadHotETF(hotCat, hotSort);
+});
+
+// ===================== FILTER PAGE =====================
+const filterCats=['全部','宽基','行业','主题','T+0','跨境','商品','债券','货币'];
+let activeFilterCat='全部';
+let sortField='chg',sortDir='desc';
+
+function renderFilterCats(){
+  document.getElementById('filterCats').innerHTML=filterCats.map(c=>`<div class="filter-cat ${c===activeFilterCat?'active':''}" data-cat="${c}">${c}</div>`).join('');
+}
+renderFilterCats();
+
+document.getElementById('filterCats').addEventListener('click',e=>{
+  const t=e.target.closest('.filter-cat');
+  if(!t)return;
+  activeFilterCat=t.dataset.cat;
+  renderFilterCats();
+  loadFilterETF(activeFilterCat, '全部', sortField, sortDir);
+});
+
+document.querySelector('.filter-list-head').addEventListener('click',e=>{
+  const s=e.target.closest('span');
+  if(!s||!s.dataset.sort)return;
+  if(sortField===s.dataset.sort) sortDir=sortDir==='desc'?'asc':'desc';
+  else{sortField=s.dataset.sort;sortDir='desc'}
+  document.querySelectorAll('.filter-list-head span').forEach(x=>x.classList.remove('sorted'));
+  s.classList.add('sorted');
+  loadFilterETF(activeFilterCat, '全部', sortField, sortDir);
+});
+
+function filterETFs(){
+  const q=document.getElementById('searchInput').value.trim();
+  if(q){
+    // 搜索时调用搜索API
+    fetch(`${API_BASE}/api/etf/search?q=${encodeURIComponent(q)}&limit=50`)
+      .then(r=>r.json())
+      .then(data=>{
+        if(!data||!data.data)return;
+        const container=document.getElementById('filterList');
+        container.innerHTML=data.data.map(e=>`
+          <div class="filter-etf">
+            <div class="fe-name"><div class="fn">${e.name}</div><div class="fc">${e.code}</div><div class="fe-tags">${e.tags.map(t=>`<span class="fe-tag">${t}</span>`).join('')}</div></div>
+            <span class="fe-price">${e.price}</span>
+            <span class="fe-chg ${e.chg>=0?'up':'down'}">${e.chg>=0?'+':''}${e.chg}%</span>
+            <span class="fe-vol">${e.amount}万</span>
+          </div>
+        `).join('');
+      });
+  } else {
+    loadFilterETF(activeFilterCat, '全部', sortField, sortDir);
+  }
+}
+
+// ===================== ARTICLES =====================
+function renderArticles(){
+  document.getElementById('artList').innerHTML=articles.map(a=>`
+    <div class="art-item" data-id="${a.id}">
+      <div class="art-info">
+        <div class="art-title">${a.title}</div>
+        <div class="art-meta">
+          <span class="art-tag">${a.tag}</span>
+          <span class="art-time">${a.time}</span>
+          <span class="art-views">${a.views}阅读</span>
+        </div>
+      </div>
+      <div class="art-cover">${a.icon}</div>
+    </div>
+  `).join('');
+  
+  // 文章点击事件
+  document.querySelectorAll('.art-item').forEach(item=>{
+    item.addEventListener('click',()=>{
+      const id=parseInt(item.dataset.id);
+      const article=articles.find(a=>a.id===id);
+      if(article) showArticle(article,'educate');
+    });
+  });
+}
+renderArticles();
+
+// 显示文章详情
+function showArticle(article, fromPage){
+  document.getElementById('articleIcon').textContent=article.icon;
+  document.getElementById('articleTitle').textContent=article.title;
+  document.getElementById('articleMeta').innerHTML=`<span>${article.tag}</span><span>${article.time}</span><span>${article.views}阅读</span>`;
+  document.getElementById('articleContent').innerHTML=article.content;
+  
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-article').classList.add('active');
+  document.querySelector('.tab-bar').style.display='none';
+  // 记录来源页面
+  document.getElementById('articleBack').dataset.from=fromPage||'home';
+  window.scrollTo(0,0);
+}
+
+// 返回按钮
+document.getElementById('articleBack').addEventListener('click',()=>{
+  const fromPage=document.getElementById('articleBack').dataset.from||'home';
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+fromPage).classList.add('active');
+  document.querySelector('.tab-bar').style.display='flex';
+  window.scrollTo(0,0);
+});
+
+// 投教精选"更多"按钮跳转到投教tab
+document.getElementById('eduMore').addEventListener('click',()=>{
+  switchTab('educate');
+});
+
+// ===================== EDUCATE =====================
+let eduCat='all';
+function renderEduCats(){
+  document.getElementById('eduCats').innerHTML=eduData.categories.map(c=>`<div class="edu-cat ${c.id===eduCat?'active':''}" data-id="${c.id}"><span class="ec-icon">${c.icon}</span><span class="ec-name">${c.name}</span></div>`).join('');
+}
+renderEduCats();
+
+document.getElementById('eduCats').addEventListener('click',e=>{
+  const t=e.target.closest('.edu-cat');
+  if(!t)return;
+  eduCat=t.dataset.id;
+  renderEduCats();
+  renderEduList();
+});
+
+function renderEduList(){
+  document.getElementById('eduList').innerHTML=articles.map(a=>`
+    <div class="edu-item" data-id="${a.id}">
+      <div class="edu-cover" style="font-size:32px;background:linear-gradient(135deg,#f8f4f0,#f0e8e0)">${a.icon}</div>
+      <div class="edu-info">
+        <div class="ei-title">${a.title}</div>
+        <div class="ei-desc">${a.tag}</div>
+        <div class="ei-meta">
+          <div class="ei-left"><span class="ei-tag">${a.tag}</span><span class="ei-level">入门</span></div>
+          <span class="ei-views">👁 ${a.views}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  // 文章点击事件 - 跳转到详情页
+  document.querySelectorAll('#eduList .edu-item').forEach(item=>{
+    item.addEventListener('click',()=>{
+      const id=parseInt(item.dataset.id);
+      const article=articles.find(a=>a.id===id);
+      if(article) showArticle(article,'educate');
+    });
+  });
+}
+renderEduList();
+
+// FAQ
+document.getElementById('faqList').innerHTML=eduData.faq.map((f,i)=>`<div class="faq-item" data-idx="${i}"><div class="faq-q"><span class="faq-badge">Q</span><span class="faq-q-text">${f.q}</span><span class="faq-arrow">▼</span></div><div class="faq-a"><span class="faq-a-badge">A</span><span class="faq-a-text">${f.a}</span></div></div>`).join('');
+document.getElementById('faqList').addEventListener('click',e=>{
+  const item=e.target.closest('.faq-item');
+  if(!item)return;
+  item.classList.toggle('open');
+});
+
+// ===================== INIT LOAD =====================
+async function initData() {
+  await Promise.all([
+    loadIndexData(),
+    loadMarketStats(),
+    loadETFTop('rise', 5),
+    loadHotETF('宽基', 'rise'),
+    loadFilterETF('全部', '全部', 'chg', 'desc')
+  ]);
+}
+
+// 页面加载完成后初始化
+initData();
+
+// 每5秒刷新一次数据（腾讯实时接口，秒级更新）
+setInterval(() => {
+  loadIndexData();
+  loadMarketStats();
+  loadETFTop(perfTab, 5, activeMarketCat);
+  loadHotETF(hotCat, hotSort);
+}, 5000);
+</script>
+</body>
+</html>
