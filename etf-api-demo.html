@@ -15,6 +15,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .phone{width:390px;height:844px;background:var(--bg);border-radius:44px;overflow:hidden;box-shadow:0 0 0 3px #333,0 0 0 6px #1a1a1a,0 20px 60px rgba(0,0,0,.5);position:relative;display:flex;flex-direction:column}
 .phone-statusbar{height:54px;background:var(--dark);display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 8px;color:#fff;font-size:14px;font-weight:600;flex-shrink:0}
 .phone-nav{height:48px;background:var(--dark);display:flex;align-items:center;padding:0 12px;flex-shrink:0;gap:10px}
+.phone-nav .nav-back{display:flex;align-items:center;cursor:pointer;margin-right:8px}
+.phone-nav .nav-back svg{width:20px;height:20px;color:#fff}
 .phone-nav .nav-search{flex:1;display:flex;align-items:center;background:rgba(255,255,255,.15);border-radius:16px;padding:6px 12px;gap:6px}
 .phone-nav .nav-search svg{width:14px;height:14px;color:rgba(255,255,255,.7);flex-shrink:0}
 .phone-nav .nav-search input{flex:1;border:none;background:none;font-size:13px;color:#fff;outline:none}
@@ -134,7 +136,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .article-icon{font-size:48px;margin:20px 0 12px}
 .article-title{font-size:18px;font-weight:600;line-height:1.4;margin-bottom:12px}
 .article-meta{display:flex;justify-content:center;gap:16px;font-size:12px;opacity:.8}
-.article-content{padding:20px 16px;background:var(--white);min-height:calc(100vh - 280px)}
+.article-content{padding:20px 16px;background:var(--white);min-height:calc(100vh - 350px)}
 .article-content h2{font-size:16px;color:var(--dark);margin:24px 0 12px;font-weight:600}
 .article-content h2:first-child{margin-top:0}
 .article-content p{font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:12px}
@@ -147,6 +149,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .risk{padding:10px 16px;text-align:left;background:var(--white);margin:0 12px 12px;border-radius:10px}
 .risk-text{font-size:11px;color:var(--text3);line-height:1.6}
 .risk-in-filter{margin:12px 0 0 0;border-radius:0;position:relative;z-index:1}
+#page-article .risk{margin:0;padding:10px 16px;border-radius:0}
 
 /* Filter Page */
 .filter-search{padding:12px 16px;background:var(--white)}
@@ -250,11 +253,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
   </div>
 
   <div class="phone-nav">
-    <div class="nav-search" id="navSearch">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" placeholder="搜索ETF" id="navSearchInput">
+    <div class="nav-back" id="navBack" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
     </div>
-    <div class="nav-title" id="navTitle">ETF手册</div>
+    <div class="nav-title" id="navTitle">发现</div>
+    <div class="nav-search" id="navSearch" style="margin-left:auto">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="搜索ETF代码/名称" id="navSearchInput">
+    </div>
   </div>
 
   <div class="phone-content" id="content">
@@ -632,21 +638,38 @@ updateTime();setInterval(updateTime,60000);
 const tabs=document.querySelectorAll('.tab-item');
 const pages=document.querySelectorAll('.page');
 const navTitle=document.getElementById('navTitle');
+const navBack=document.getElementById('navBack');
+const navSearch=document.getElementById('navSearch');
 const titles={home:'发现',filter:'ETF看板',educate:'ETF投教'};
+let previousTab='home'; // 记录上一个tab
+
 function switchTab(pg){
+  if(pg!=='home'){
+    previousTab=Array.from(tabs).find(t=>t.classList.contains('active'))?.dataset.page||'home';
+  }
   tabs.forEach(t=>t.classList.remove('active'));
   document.querySelector('[data-page="'+pg+'"]').classList.add('active');
   pages.forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+pg).classList.add('active');
   navTitle.textContent=titles[pg];
   document.getElementById('content').scrollTop=0;
-  document.getElementById('navSearch').style.display=(pg==='home')?'flex':'none';
-  document.getElementById('navTitle').style.display=(pg==='home')?'':'none';
   document.getElementById('navSearchInput').value='';
+  
+  // 首页显示标题+搜索框,其他页面显示返回按钮+标题+搜索框
+  if(pg==='home'){
+    navBack.style.display='none';
+    navTitle.textContent='发现';
+    navSearch.style.display='flex';
+  } else {
+    navBack.style.display='flex';
+    navSearch.style.display='flex';
+  }
 }
 tabs.forEach(tab=>{
   tab.addEventListener('click',()=>switchTab(tab.dataset.page));
 });
+// 顶部返回按钮
+navBack.addEventListener('click',()=>switchTab('home'));
 
 // 顶部搜索框
 document.getElementById('navSearchInput').addEventListener('keydown',e=>{
@@ -698,11 +721,7 @@ async function loadMarketStats() {
 }
 
 // 加载ETF排行
-let isLoadingETFTop = false;
 async function loadETFTop(type='rise', limit=5, category='全部') {
-  if (isLoadingETFTop) return;
-  isLoadingETFTop = true;
-  
   try {
     let url = `/api/etf/top?type=${type}&limit=${limit}`;
     if (category && category !== '全部') {
@@ -718,55 +737,63 @@ async function loadETFTop(type='rise', limit=5, category='全部') {
         <span class="tbl-col-price">${e.price}</span>
         <div class="tbl-col-chg"><span class="chg-badge ${e.chg>=0?'up':'down'}">${e.chg>=0?'+':''}${e.chg}%</span></div>
       </div>`).join('');
-  } finally {
-    isLoadingETFTop = false;
+  } catch(e) {
+    console.error('loadETFTop error:', e);
   }
 }
 
 // 加载热门ETF
 async function loadHotETF(category='宽基', sort='rise', limit=6) {
-  const order = sort === 'fall' ? 'asc' : 'desc';
-  const data = await apiGet(`/api/etf/list?category=${category}&sort=chg&order=${order}&limit=${limit}`);
-  if (!data || !data.data) return;
+  try {
+    const order = sort === 'fall' ? 'asc' : 'desc';
+    const data = await apiGet(`/api/etf/list?category=${category}&sort=chg&order=${order}&limit=${limit}`);
+    if (!data || !data.data) return;
   
-  let list = data.data;
-  if (sort === 'rise') list = list.filter(e => e.chg > 0);
-  else if (sort === 'fall') list = list.filter(e => e.chg < 0);
-  
-  const container = document.getElementById('hotGrid');
-  container.innerHTML = list.slice(0, limit).map(e => `
-    <div class="hot-card">
-      <div class="hc-head"><span class="hc-name">${e.name}</span><div>${e.tags.map(t=>`<span class="mini-tag">${t}</span>`).join('')}</div></div>
-      <div class="hc-price-row"><span class="hc-price">${e.price}</span><span class="hc-chg ${e.chg>=0?'up':'down'}">${e.chg>=0?'+':''}${e.chg}%</span></div>
-      <div class="hc-vol">成交额 ${e.amount}万</div>
-    </div>
-  `).join('');
+    let list = data.data;
+    if (sort === 'rise') list = list.filter(e => e.chg > 0);
+    else if (sort === 'fall') list = list.filter(e => e.chg < 0);
+    
+    const container = document.getElementById('hotGrid');
+    container.innerHTML = list.slice(0, limit).map(e => `
+      <div class="hot-card">
+        <div class="hc-head"><span class="hc-name">${e.name}</span><div>${e.tags.map(t=>`<span class="mini-tag">${t}</span>`).join('')}</div></div>
+        <div class="hc-price-row"><span class="hc-price">${e.price}</span><span class="hc-chg ${e.chg>=0?'up':'down'}">${e.chg>=0?'+':''}${e.chg}%</span></div>
+        <div class="hc-vol">成交额 ${e.amount}万</div>
+      </div>
+    `).join('');
+  } catch(e) {
+    console.error('loadHotETF error:', e);
+  }
 }
 
 // 加载筛选页ETF
 async function loadFilterETF(category='全部', sub='全部', sort='chg', order='desc') {
-  const cat = category === '全部' ? '' : category;
-  const data = await apiGet(`/api/etf/list?category=${cat}&sort=${sort}&order=${order}&limit=100`);
-  if (!data || !data.data) return;
-  
-  let list = data.data;
-  if (sub !== '全部' && sub) {
-    list = list.filter(e => e.name.includes(sub));
-  }
-  
-  const container = document.getElementById('filterList');
-  container.innerHTML = list.map(e => `
-    <div class="filter-etf">
-      <div class="fe-name">
-        <div class="fn">${e.name}</div>
-        <div class="fc">${e.code}</div>
-        <div class="fe-tags">${e.tags.map(t=>`<span class="fe-tag">${t}</span>`).join('')}</div>
+  try {
+    const cat = category === '全部' ? '' : category;
+    const data = await apiGet(`/api/etf/list?category=${cat}&sort=${sort}&order=${order}&limit=100`);
+    if (!data || !data.data) return;
+    
+    let list = data.data;
+    if (sub !== '全部' && sub) {
+      list = list.filter(e => e.name.includes(sub));
+    }
+    
+    const container = document.getElementById('filterList');
+    container.innerHTML = list.map(e => `
+      <div class="filter-etf">
+        <div class="fe-name">
+          <div class="fn">${e.name}</div>
+          <div class="fc">${e.code}</div>
+          <div class="fe-tags">${e.tags.map(t=>`<span class="fe-tag">${t}</span>`).join('')}</div>
+        </div>
+        <span class="fe-price">${e.price}</span>
+        <span class="fe-chg ${e.chg>=0?'up':'down'}">${e.chg>=0?'+':''}${e.chg}%</span>
+        <span class="fe-vol">${e.amount}万</span>
       </div>
-      <span class="fe-price">${e.price}</span>
-      <span class="fe-chg ${e.chg>=0?'up':'down'}">${e.chg>=0?'+':''}${e.chg}%</span>
-      <span class="fe-vol">${e.amount}万</span>
-    </div>
-  `).join('') || '<div style="text-align:center;padding:40px;color:var(--text3);font-size:14px">暂无符合条件的ETF</div>';
+    `).join('') || '<div style="text-align:center;padding:40px;color:var(--text3);font-size:14px">暂无符合条件的ETF</div>';
+  } catch(e) {
+    console.error('loadFilterETF error:', e);
+  }
 }
 
 // ===================== MARKET PERFORMANCE =====================
